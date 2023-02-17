@@ -125,5 +125,7 @@ int main(int argc, char *argv[])
     ofstream outputFile;
     outputFile.open("output1.txt");
 
-    OnMult(1000, 1000, outputFile);
+    OnMultLine(1000, 1000, outputFile);
+    
+    outputFile.close();
 }
