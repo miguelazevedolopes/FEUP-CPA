@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <eml.h>
 
 using namespace std;
 
@@ -122,10 +123,24 @@ void OnMultLine(int m_ar, int m_br, ofstream &out)
 
 int main(int argc, char *argv[])
 {
+    emlInit();
     ofstream outputFile;
     outputFile.open("output1.txt");
 
+    size_t count;
+    emlDeviceGetCount(&count);
+    emlData_t* data[count];
+    emlStart();
+
     OnMultLine(1000, 1000, outputFile);
-    
+
+    emlStop(data);
+    double consumed, elapsed;
+    emlDataGetConsumed(data[0], &consumed);
+    emlDataGetElapsed(data[0], &elapsed);
+    emlDataFree(data[0]);
+    printf("This device consumed %g J in %g s\n", consumed, elapsed);
+
     outputFile.close();
+    emlShutdown();
 }
