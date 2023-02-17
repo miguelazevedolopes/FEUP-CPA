@@ -1,8 +1,4 @@
-#include <stdio.h>
 #include <iostream>
-#include <iomanip>
-#include <time.h>
-#include <cstdlib>
 #include <fstream>
 
 using namespace std;
