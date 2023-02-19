@@ -5,12 +5,9 @@
 
 using namespace std;
 
-#define SYSTEMTIME clock_t
 
 void OnMult(int m_ar, int m_br, ofstream &out)
 {
-
-    SYSTEMTIME Time1, Time2;
 
 
     char st[200];
@@ -37,7 +34,6 @@ void OnMult(int m_ar, int m_br, ofstream &out)
     emlDeviceGetCount(&count);
     emlData_t* data[count];
 
-    Time1 = clock();
     emlStart();
 
     #pragma omp parallel for
@@ -54,7 +50,6 @@ void OnMult(int m_ar, int m_br, ofstream &out)
         }
     }
     emlStop(data);
-    Time2 = clock();
 
     double consumed, elapsed;
     emlDataGetConsumed(data[0], &consumed);
@@ -62,9 +57,6 @@ void OnMult(int m_ar, int m_br, ofstream &out)
     emlDataFree(data[0]);
 
     sprintf(st,"This device consumed %g J in %g s\n", consumed, elapsed);
-    out << st;
-
-    sprintf(st, "Time: %3.3f seconds\n", (double)(Time2 - Time1) / CLOCKS_PER_SEC);
     out << st;
 
     // display 10 elements of the result matrix tto verify correctness
@@ -85,7 +77,6 @@ void OnMult(int m_ar, int m_br, ofstream &out)
 // add code here for line x line matriz multiplication
 void OnMultLine(int m_ar, int m_br, ofstream &out)
 {
-    SYSTEMTIME Time1, Time2;
 
     char st[200];
     double temp;
@@ -117,7 +108,6 @@ void OnMultLine(int m_ar, int m_br, ofstream &out)
     emlDeviceGetCount(&count);
     emlData_t* data[count];
 
-    Time1 = clock();
     emlStart();
     #pragma omp parallel for
     for (i = 0; i < m_ar; i++) {
@@ -129,7 +119,6 @@ void OnMultLine(int m_ar, int m_br, ofstream &out)
     }
 
     emlStop(data);
-    Time2 = clock();
 
     double consumed, elapsed;
     emlDataGetConsumed(data[0], &consumed);
@@ -137,9 +126,6 @@ void OnMultLine(int m_ar, int m_br, ofstream &out)
     emlDataFree(data[0]);
 
     sprintf(st,"This device consumed %g J in %g s\n", consumed, elapsed);
-    out << st;
-
-    sprintf(st, "Time: %3.3f seconds\n", (double)(Time2 - Time1) / CLOCKS_PER_SEC);
     out << st;
 
     // display 10 elements of the result matrix tto verify correctness
