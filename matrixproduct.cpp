@@ -130,16 +130,75 @@ int main(int argc, char *argv[])
     size_t count;
     emlDeviceGetCount(&count);
     emlData_t* data[count];
+    
+    printf("1000x1000 Simple:\n");
     emlStart();
 
-    OnMultLine(1000, 1000, outputFile);
+    OnMult(1000, 1000, outputFile);
 
     emlStop(data);
     double consumed, elapsed;
     emlDataGetConsumed(data[0], &consumed);
     emlDataGetElapsed(data[0], &elapsed);
     emlDataFree(data[0]);
-    printf("This device consumed %g J in %g s\n", consumed, elapsed);
+    printf("This device consumed %g J in %g s\n\n", consumed, elapsed);
+
+    printf("1400x1400 Simple:\n");
+    emlStart();
+
+    OnMult(1400, 1400, outputFile);
+
+    emlStop(data);
+    emlDataGetConsumed(data[0], &consumed);
+    emlDataGetElapsed(data[0], &elapsed);
+    emlDataFree(data[0]);
+    printf("This device consumed %g J in %g s\n\n", consumed, elapsed);
+
+    printf("2000x2000 Simple:\n");
+    emlStart();
+
+    OnMult(2000, 2000, outputFile);
+
+    emlStop(data);
+    emlDataGetConsumed(data[0], &consumed);
+    emlDataGetElapsed(data[0], &elapsed);
+    emlDataFree(data[0]);
+    printf("This device consumed %g J in %g s\n\n", consumed, elapsed);
+
+
+    printf("1000x1000 MultLine:\n");
+    emlStart();
+
+    OnMultLine(1000, 1000, outputFile);
+
+    emlStop(data);
+    emlDataGetConsumed(data[0], &consumed);
+    emlDataGetElapsed(data[0], &elapsed);
+    emlDataFree(data[0]);
+    printf("This device consumed %g J in %g s\n\n", consumed, elapsed);
+
+    printf("1400x1400 MultLine:\n");
+    emlStart();
+
+    OnMultLine(1400, 1400, outputFile);
+
+    emlStop(data);
+    emlDataGetConsumed(data[0], &consumed);
+    emlDataGetElapsed(data[0], &elapsed);
+    emlDataFree(data[0]);
+    printf("This device consumed %g J in %g s\n\n", consumed, elapsed);
+
+    printf("2000x2000 MultLine:\n");
+    emlStart();
+
+    OnMultLine(2000, 2000, outputFile);
+
+    emlStop(data);
+    emlDataGetConsumed(data[0], &consumed);
+    emlDataGetElapsed(data[0], &elapsed);
+    emlDataFree(data[0]);
+    printf("This device consumed %g J in %g s\n\n", consumed, elapsed);
+
 
     outputFile.close();
     emlShutdown();
