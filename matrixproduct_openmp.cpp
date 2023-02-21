@@ -36,7 +36,8 @@ void OnMult(int m_ar, int m_br, ofstream &out)
 
     emlStart();
 
-    #pragma omp parallel for
+    omp_set_num_threads(omp_get_num_procs());
+    #pragma omp parallel for private(i, j, k, temp) shared(pha, phb, phc)
     for (i = 0; i < m_ar; i++)
     {
         for (j = 0; j < m_br; j++)
@@ -109,7 +110,9 @@ void OnMultLine(int m_ar, int m_br, ofstream &out)
     emlData_t* data[count];
 
     emlStart();
-    #pragma omp parallel for
+
+    omp_set_num_threads(omp_get_num_procs());
+    #pragma omp parallel for private(i, j, k) shared(pha, phb, phc)
     for (i = 0; i < m_ar; i++) {
         for (k = 0; k < m_br; k++) {
             for (j = 0; j < m_ar; j++) {
