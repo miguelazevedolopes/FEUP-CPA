@@ -54,7 +54,7 @@ void OnMult(int m_ar, int m_br, ofstream &out)
     emlDataGetElapsed(data[0], &elapsed);
     emlDataFree(data[0]);
 
-    sprintf(st,"This device consumed %g J in %g s\n", consumed, elapsed);
+    sprintf(st,"This device consumed %g J in %g s = %g W\n", consumed, elapsed, consumed/elapsed);
     out << st;
 
 
@@ -124,7 +124,7 @@ void OnMultLine(int m_ar, int m_br, ofstream &out)
     emlDataGetElapsed(data[0], &elapsed);
     emlDataFree(data[0]);
 
-    sprintf(st,"This device consumed %g J in %g s\n", consumed, elapsed);
+    sprintf(st,"This device consumed %g J in %g s = %g W\n", consumed, elapsed, consumed/elapsed);
     out << st;
 
 
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 {
     emlInit();
     ofstream outputFile;
-    outputFile.open("output1.txt");
+    outputFile.open("output-no-openmp.txt");
 
 
     OnMult(1000, 1000, outputFile);
