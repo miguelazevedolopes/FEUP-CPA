@@ -10,6 +10,8 @@ void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
     long long size = n - 1;
     bool *marks = new bool[size];
 
+    std::cout << "Calculating SieveOfEratosthenes" << std::endl;
+
     // Start time
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -35,6 +37,8 @@ void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
     // Output Execution time
     outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
                << std::endl;
+    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+              << std::endl;
 
     // Output Primes
     for (long long k = 0; k < size; k++)
@@ -58,6 +62,8 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
     long long size = n - 1;
     bool *marks = new bool[size];
 
+    std::cout << "Calculating SieveOfEratosthenesFastMarking" << std::endl;
+
     // Start time
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -68,8 +74,8 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
         long long num = k + 2;
 
         // Go from num * num until n to check for multiples
-        long long counter = 0;
-        for (long long multNum = num * num; multNum < n; counter++)
+        long long counter = 1;
+        for (long long multNum = num * num; multNum <= n; counter++)
         {
             // Mark number if divisible by study number
             marks[multNum - 2] |= (multNum % num == 0);
@@ -84,6 +90,8 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
     // Output Execution time
     outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
                << std::endl;
+    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+              << std::endl;
 
     // Output Primes
     for (long long k = 0; k < size; k++)
@@ -108,6 +116,8 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
     long long size = n - 1;
     bool *marks = new bool[size];
 
+    std::cout << "Calculating SieveOfEratosthenesFastMarkingReorganized" << std::endl;
+
     // Start time
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -133,6 +143,8 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
     // Output Execution time
     outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
                << std::endl;
+    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+              << std::endl;
 
     // Output Primes
     for (long long k = 0; k < size; k++)
@@ -151,17 +163,24 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
 
 int main(int argc, char *argv[])
 {
-    long long test = 100000;
+    long long n;
+
+    std::cout << "N: ";
+    std::cin >> n;  
+    std::cout << std::endl;
 
     std::ofstream outputFile1;
     outputFile1.open("sieveoferatosthenes.txt");
-    SieveOfEratosthenes(test, outputFile1);
+    SieveOfEratosthenes(n, outputFile1);
+    outputFile1.close();
 
     std::ofstream outputFile2;
     outputFile2.open("sieveoferatosthenesfastmarking.txt");
-    SieveOfEratosthenesFastMarking(test, outputFile2);
+    SieveOfEratosthenesFastMarking(n, outputFile2);
+    outputFile2.close();
 
-    std::ofstream outputFile3;
+    /*std::ofstream outputFile3;
     outputFile3.open("sieveoferatosthenesfastmarkingreorganized.txt");
-    SieveOfEratosthenesFastMarkingReorganized(test, outputFile3);
+    SieveOfEratosthenesFastMarkingReorganized(n, outputFile3);
+    outputFile3.close();*/
 }
