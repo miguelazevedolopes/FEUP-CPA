@@ -51,7 +51,6 @@ void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
     delete marks;
 }
 
-// TODO
 void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
 {
     // Array in style -> [2, 3, 4, 5, 6, 7, 8, ..., n]
@@ -69,13 +68,14 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
         long long num = k + 2;
 
         // Go from num * num until n to check for multiples
-        for (long long j = num * num - 2; j < size; j++)
+        long long counter = 0;
+        for (long long multNum = num * num; multNum < n; counter++)
         {
-            // Number is always 2 + index of array
-            long long multNum = j + 2;
-
             // Mark number if divisible by study number
-            marks[j] |= (multNum % num == 0);
+            marks[multNum - 2] |= (multNum % num == 0);
+
+            // Next number is always the base num * num plus the multiple of the base number
+            multNum = num * num + num * counter;
         }
     }
 
@@ -151,7 +151,7 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
 
 int main(int argc, char *argv[])
 {
-    long long test = 100;
+    long long test = 100000;
 
     std::ofstream outputFile1;
     outputFile1.open("sieveoferatosthenes.txt");
