@@ -1,7 +1,8 @@
 #include <iostream>
+#include <fstream>
 #include <chrono>
 
-void SieveOfEratosthenes(long long n)
+void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
 {
     // Array in style -> [2, 3, 4, 5, 6, 7, 8, ..., n]
     // Size is n - 1
@@ -30,20 +31,20 @@ void SieveOfEratosthenes(long long n)
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
-    // Print Primes
-    std::cout << "The prime number are:" << std::endl;
+    // Output Execution time
+    outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+               << std::endl;
+
+    // Output Primes
     for (long long k = 0; k < size; k++)
     {
         // Unmarked are prime
         if (!marks[k])
         {
             // Number is always 2 + index of array
-            std::cout << k + 2 << std::endl;
+            outputFile << k + 2 << std::endl;
         }
     }
-
-    // Print Execution time
-    std::cout << std::endl << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl;
 
     // Clear memory :D
     delete marks;
@@ -51,5 +52,8 @@ void SieveOfEratosthenes(long long n)
 
 int main(int argc, char *argv[])
 {
-    SieveOfEratosthenes(1000000);
+    std::ofstream outputFile;
+    outputFile.open("sieveoferatosthenes.txt");
+
+    SieveOfEratosthenes(1000000, outputFile);
 }
