@@ -19,7 +19,7 @@ void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
     auto t1 = std::chrono::high_resolution_clock::now();
 
     // Calculate primes
-    for (long long k = 0; k < size; k++)
+    for (long long k = 0; (k + 2) * (k + 2) < n; k++)
     {
         // Number is always 2 + index of array
         long long num = k + 2;
@@ -71,7 +71,7 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
     auto t1 = std::chrono::high_resolution_clock::now();
 
     // Calculate primes
-    for (long long k = 0; k < size; k++)
+    for (long long k = 0; (k + 2) * (k + 2) < n; k++)
     {
         // Number is always 2 + index of array
         long long num = k + 2;
