@@ -2,8 +2,9 @@
 #include <fstream>
 #include <chrono>
 #include <cmath>
-#include <vector>
 #include <bits/stdc++.h>
+#include <omp.h>
+
 
 
 void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
@@ -125,13 +126,16 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
     // Size is n - 1
     long long limit = floor(sqrt(n)) + 1;
 
-    std::vector<long long> prime;
-    prime.reserve(limit);
+    // First set of primes, used to check for primes in other blocks
+    long long* prime = new long long[limit];
+    long long primeSize = 0;
 
-    std::vector<long long> prime_full;
-    prime_full.reserve(n-1);
+    long long* primeFull = new long long[n-1];
+    long long primeFullSize = 0;
 
-    std::vector<bool> marks(limit + 1, false);
+
+    bool marks[limit+1];
+    memset(marks, false, sizeof(marks));
 
     // Start time
     auto t1 = std::chrono::high_resolution_clock::now();
@@ -153,7 +157,8 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
     {
         if (!marks[p])
         {
-            prime.push_back(p);
+            prime[primeSize]=p;
+            primeSize++;
         }
     }
 
@@ -161,18 +166,16 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
     long long low = limit;
     long long high = 2*limit;
 
-
-    while (low < n)
+    for (low,high; low < n;low+=limit,high+=limit)
     {
         if (high >= n)
            high = n;
-
 
         bool mark[limit+1];
         memset(mark, false, sizeof(mark));
 
 
-        for (long long i = 0; i < prime.size(); i++)
+        for (long long i = 0; i < primeSize; i++)
         {
 
             long long loLim = floor(low/prime[i]) * prime[i];
@@ -185,12 +188,11 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
         }
 
         for (long long i = low; i<high; i++)
-            if (mark[i - low] == false)
-                prime_full.push_back(i);
-
-
-        low = low + limit;
-        high = high + limit;
+            if (mark[i - low] == false){
+                primeFull[primeFullSize]=i;
+                primeFullSize++;
+            }
+                
     }
 
 
@@ -202,12 +204,115 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
     std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
               << std::endl;
 
-    for (auto v:prime){
-        outputFile << v<< std::endl;
+    for (long long i=0;i<primeSize;i++){
+        outputFile << prime[i]<< std::endl;
     }
-    for (auto v:prime_full){
-        outputFile << v<< std::endl;
+    for (long long i=0;i<primeFullSize;i++){
+        outputFile << primeFull[i]<< std::endl;
     }
+    delete prime,primeFull;
+
+
+}
+
+
+// TODO
+void SieveOfEratosthenesFastMarkingReorganizedOMP(long long n, std::ofstream &outputFile)
+{
+
+    std::cout << "Calculating SieveOfEratosthenesFastMarking" << std::endl;
+
+
+
+    // Array in style -> [2, 3, 4, 5, 6, 7, 8, ..., n]
+    // Size is n - 1
+    long long limit = floor(sqrt(n)) + 1;
+
+    // First set of primes, used to check for primes in other blocks
+    long long* prime = new long long[limit];
+    long long primeSize = 0;
+
+    long long* primeFull = new long long[n-1];
+    long long primeFullSize = 0;
+
+
+    bool marks[limit+1];
+    memset(marks, false, sizeof(marks));
+
+    // Start time
+    auto t1 = std::chrono::high_resolution_clock::now();
+
+    for (long long p=2; p*p<limit; p++)
+    {
+        // If p is not changed, then it is a prime
+        if (marks[p] == false)
+        {
+            // Update all multiples of p
+            for (long long i=p*p; i<limit; i+=p)
+                marks[i] = true;
+        }
+    }
+ 
+
+    // Print all prime numbers and store them in prime
+    for (long long p=2; p<limit; p++)
+    {
+        if (!marks[p])
+        {
+            prime[primeSize]=p;
+            primeSize++;
+        }
+    }
+
+
+    long long low = limit;
+    long long high = 2*limit;
+
+    for (low,high; low < n;low+=limit,high+=limit)
+    {
+        if (high >= n)
+           high = n;
+
+        bool mark[limit+1];
+        memset(mark, false, sizeof(mark));
+
+
+        for (long long i = 0; i < primeSize; i++)
+        {
+
+            long long loLim = floor(low/prime[i]) * prime[i];
+            if (loLim < low)
+                loLim += prime[i];
+ 
+
+            for (long long j=loLim; j<high; j+=prime[i])
+                mark[j-low] = true;
+        }
+
+        for (long long i = low; i<high; i++)
+            if (mark[i - low] == false){
+                primeFull[primeFullSize]=i;
+                primeFullSize++;
+            }
+                
+    }
+
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    // Output Execution time
+    outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+               << std::endl;
+    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+              << std::endl;
+
+    for (long long i=0;i<primeSize;i++){
+        outputFile << prime[i]<< std::endl;
+    }
+    for (long long i=0;i<primeFullSize;i++){
+        outputFile << primeFull[i]<< std::endl;
+    }
+    delete prime,primeFull;
 
 
 }
