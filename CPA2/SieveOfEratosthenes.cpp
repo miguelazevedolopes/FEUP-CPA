@@ -117,10 +117,7 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
 // TODO
 void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outputFile)
 {
-
-    std::cout << "Calculating SieveOfEratosthenesFastMarking" << std::endl;
-
-
+    std::cout << "Calculating SieveOfEratosthenesFastMarkingReorganized" << std::endl;
 
     // Array in style -> [2, 3, 4, 5, 6, 7, 8, ..., n]
     // Size is n - 1
@@ -219,10 +216,7 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
 // TODO
 void SieveOfEratosthenesFastMarkingReorganizedOMP(long long n, std::ofstream &outputFile)
 {
-
-    std::cout << "Calculating SieveOfEratosthenesFastMarking" << std::endl;
-
-
+    std::cout << "Calculating SieveOfEratosthenesFastMarkingReorganizedOMP" << std::endl;
 
     // Array in style -> [2, 3, 4, 5, 6, 7, 8, ..., n]
     // Size is n - 1
@@ -325,10 +319,10 @@ int main(int argc, char *argv[])
     std::cin >> n;  
     std::cout << std::endl;
 
-    // std::ofstream outputFile1;
-    // outputFile1.open("sieveoferatosthenes.txt");
-    // SieveOfEratosthenes(n, outputFile1);
-    // outputFile1.close();
+    std::ofstream outputFile1;
+    outputFile1.open("sieveoferatosthenes.txt");
+    SieveOfEratosthenes(n, outputFile1);
+    outputFile1.close();
 
     std::ofstream outputFile2;
     outputFile2.open("sieveoferatosthenesfastmarking.txt");
