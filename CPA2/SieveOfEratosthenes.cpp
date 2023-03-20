@@ -325,7 +325,7 @@ void SieveOfEratosthenesBlockOMP(long long n, std::ofstream &outputFile)
 
 void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
 {
-    std::cout << "Calculating SieveOfEratosthenesBlockOMP" << std::endl;
+    std::cout << "Calculating SieveOfEratosthenesBlockOMPTask" << std::endl;
 
     // Array in style -> [2, 3, 4, 5, 6, 7, 8, ..., n]
     // Size is n - 1
@@ -337,6 +337,7 @@ void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
 
     bool* primeFull = new bool[n];
     memset (primeFull, true, sizeof (bool) * n);
+
 
     bool marks[limit+1];
     memset(marks, false, sizeof(marks));
@@ -354,6 +355,7 @@ void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
                 marks[i] = true;
         }
     }
+ 
 
     // Print all prime numbers and store them in prime
     for (long long p=2; p<limit; p++)
@@ -366,35 +368,33 @@ void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
     }
 
 
-    omp_set_num_threads(N_THREADS);
-    #pragma omp parallel shared(primeFull)
-    {
 
-        int id, thread_limit,thread_n;
-        id = omp_get_thread_num();
-        thread_limit =  limit<1024 ? limit : 1024; 
+    #pragma omp parallel
+    #pragma omp single
+    #pragma omp taskloop num_tasks(20)
+        for (long long low=limit; low < n;low+=limit){
+            long long high=low+limit;
+            if (high >= n)
+                high = n;
 
-        long long low = (long long)floor(n/N_THREADS)*(id)+limit;
-        long long high = low + thread_limit;
-        thread_n = id==(N_THREADS-1) ? n : (long long)floor(n/N_THREADS)*(id+1)+limit;
-
-        for (low,high; low < thread_n;low+=thread_limit,high+=thread_limit)
-        {
-            if (high >= thread_n)
-                high = thread_n;
-
-            bool mark[thread_limit+1];
-            memset(mark, false, sizeof(mark));
+            bool mark[limit+1];
+            memset(mark, false, sizeof(bool)* (limit+1));
 
             for (long long i = 0; i < primeSize; i++)
             {
+
                 long long loLim = floor(low/prime[i]) * prime[i];
+
                 if (loLim < low)
                     loLim += prime[i];
 
 
-                for (long long j=loLim; j<high; j+=prime[i])
+
+                for (long long j=loLim; j<high; j+=prime[i]){
+
                     mark[j-low] = true;
+                }
+                    
 
             }
 
@@ -403,9 +403,9 @@ void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
                     primeFull[i]=false;
                 }
             }
-        }                  
-    }
-    
+            
+        }
+
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
@@ -419,14 +419,13 @@ void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
         outputFile << prime[i]<< std::endl;
     }
     for (long long i=0;i<n;i++){
-
         if(!primeFull[i]){
             outputFile << i << std::endl;
         }
     }
+    delete prime,primeFull;
 
-    delete prime;
-    delete primeFull;
+
 }
 
 int main(int argc, char *argv[])
@@ -456,4 +455,9 @@ int main(int argc, char *argv[])
     outputFile4.open("blockOMP.txt");
     SieveOfEratosthenesBlockOMP(n, outputFile4);
     outputFile4.close();
+
+    std::ofstream outputFile5;
+    outputFile5.open("blockOMPTask.txt");
+    SieveOfEratosthenesBlockOMPTask(n, outputFile5);
+    outputFile5.close();
 }
