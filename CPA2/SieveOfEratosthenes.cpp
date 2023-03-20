@@ -128,8 +128,8 @@ void SieveOfEratosthenesBlock(long long n, std::ofstream &outputFile)
     long long* prime = new long long[limit];
     long long primeSize = 0;
 
-    long long* primeFull = new long long[n-1];
-    long long primeFullSize = 0;
+    bool* primeFull = new bool[n];
+    memset (primeFull, true, sizeof (bool) * n);
 
 
     bool marks[limit+1];
@@ -185,11 +185,11 @@ void SieveOfEratosthenesBlock(long long n, std::ofstream &outputFile)
                 mark[j-low] = true;
         }
 
-        for (long long i = low; i<high; i++)
+        for (long long i = low; i<high; i++){
             if (mark[i - low] == false){
-                primeFull[primeFullSize]=i;
-                primeFullSize++;
+                primeFull[i]=false;
             }
+        }
                 
     }
 
@@ -205,8 +205,10 @@ void SieveOfEratosthenesBlock(long long n, std::ofstream &outputFile)
     for (long long i=0;i<primeSize;i++){
         outputFile << prime[i]<< std::endl;
     }
-    for (long long i=0;i<primeFullSize;i++){
-        outputFile << primeFull[i]<< std::endl;
+    for (long long i=0;i<n;i++){
+        if(!primeFull[i]){
+            outputFile << i << std::endl;
+        }
     }
     delete prime,primeFull;
 
