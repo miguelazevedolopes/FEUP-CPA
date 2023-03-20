@@ -5,6 +5,7 @@
 #include <bits/stdc++.h>
 #include <omp.h>
 
+#define N_THREADS 8
 
 
 void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
@@ -115,9 +116,9 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
 }
 
 // TODO
-void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outputFile)
+void SieveOfEratosthenesBlock(long long n, std::ofstream &outputFile)
 {
-    std::cout << "Calculating SieveOfEratosthenesFastMarkingReorganized" << std::endl;
+    std::cout << "Calculating SieveOfEratosthenesBlock" << std::endl;
 
     // Array in style -> [2, 3, 4, 5, 6, 7, 8, ..., n]
     // Size is n - 1
@@ -213,10 +214,10 @@ void SieveOfEratosthenesFastMarkingReorganized(long long n, std::ofstream &outpu
 }
 
 
-// TODO
-void SieveOfEratosthenesFastMarkingReorganizedOMP(long long n, std::ofstream &outputFile)
+// Applying the SPMD model using OpenMP 
+void SieveOfEratosthenesBlockOMP(long long n, std::ofstream &outputFile)
 {
-    std::cout << "Calculating SieveOfEratosthenesFastMarkingReorganizedOMP" << std::endl;
+    std::cout << "Calculating SieveOfEratosthenesBlockOMP" << std::endl;
 
     // Array in style -> [2, 3, 4, 5, 6, 7, 8, ..., n]
     // Size is n - 1
@@ -226,9 +227,8 @@ void SieveOfEratosthenesFastMarkingReorganizedOMP(long long n, std::ofstream &ou
     long long* prime = new long long[limit];
     long long primeSize = 0;
 
-    long long* primeFull = new long long[n-1];
-    long long primeFullSize = 0;
-
+    bool* primeFull = new bool[n];
+    memset (primeFull, true, sizeof (bool) * n);
 
     bool marks[limit+1];
     memset(marks, false, sizeof(marks));
@@ -246,7 +246,6 @@ void SieveOfEratosthenesFastMarkingReorganizedOMP(long long n, std::ofstream &ou
                 marks[i] = true;
         }
     }
- 
 
     // Print all prime numbers and store them in prime
     for (long long p=2; p<limit; p++)
@@ -259,38 +258,46 @@ void SieveOfEratosthenesFastMarkingReorganizedOMP(long long n, std::ofstream &ou
     }
 
 
-    long long low = limit;
-    long long high = 2*limit;
-
-    for (low,high; low < n;low+=limit,high+=limit)
+    omp_set_num_threads(N_THREADS);
+    #pragma omp parallel shared(primeFull)
     {
-        if (high >= n)
-           high = n;
 
-        bool mark[limit+1];
-        memset(mark, false, sizeof(mark));
+        int id, thread_limit,thread_n;
+        id = omp_get_thread_num();
+        thread_limit =  limit<1024 ? limit : 1024; 
 
+        long long low = (long long)floor(n/N_THREADS)*(id)+limit;
+        long long high = low + thread_limit;
+        thread_n = id==(N_THREADS-1) ? n : (long long)floor(n/N_THREADS)*(id+1)+limit;
 
-        for (long long i = 0; i < primeSize; i++)
+        for (low,high; low < thread_n;low+=thread_limit,high+=thread_limit)
         {
+            if (high >= thread_n)
+                high = thread_n;
 
-            long long loLim = floor(low/prime[i]) * prime[i];
-            if (loLim < low)
-                loLim += prime[i];
- 
+            bool mark[thread_limit+1];
+            memset(mark, false, sizeof(mark));
 
-            for (long long j=loLim; j<high; j+=prime[i])
-                mark[j-low] = true;
-        }
+            for (long long i = 0; i < primeSize; i++)
+            {
+                long long loLim = floor(low/prime[i]) * prime[i];
+                if (loLim < low)
+                    loLim += prime[i];
 
-        for (long long i = low; i<high; i++)
-            if (mark[i - low] == false){
-                primeFull[primeFullSize]=i;
-                primeFullSize++;
+
+                for (long long j=loLim; j<high; j+=prime[i])
+                    mark[j-low] = true;
+
             }
-                
-    }
 
+            for (long long i = low; i<high; i++){
+                if (mark[i - low] == false){
+                    primeFull[i]=false;
+                }
+            }
+        }                  
+    }
+    
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
@@ -303,12 +310,121 @@ void SieveOfEratosthenesFastMarkingReorganizedOMP(long long n, std::ofstream &ou
     for (long long i=0;i<primeSize;i++){
         outputFile << prime[i]<< std::endl;
     }
-    for (long long i=0;i<primeFullSize;i++){
-        outputFile << primeFull[i]<< std::endl;
+    for (long long i=0;i<n;i++){
+
+        if(!primeFull[i]){
+            outputFile << i << std::endl;
+        }
     }
-    delete prime,primeFull;
+
+    delete prime;
+    delete primeFull;
+}
+
+void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
+{
+    std::cout << "Calculating SieveOfEratosthenesBlockOMP" << std::endl;
+
+    // Array in style -> [2, 3, 4, 5, 6, 7, 8, ..., n]
+    // Size is n - 1
+    long long limit = floor(sqrt(n)) + 1;
+
+    // First set of primes, used to check for primes in other blocks
+    long long* prime = new long long[limit];
+    long long primeSize = 0;
+
+    bool* primeFull = new bool[n];
+    memset (primeFull, true, sizeof (bool) * n);
+
+    bool marks[limit+1];
+    memset(marks, false, sizeof(marks));
+
+    // Start time
+    auto t1 = std::chrono::high_resolution_clock::now();
+
+    for (long long p=2; p*p<limit; p++)
+    {
+        // If p is not changed, then it is a prime
+        if (marks[p] == false)
+        {
+            // Update all multiples of p
+            for (long long i=p*p; i<limit; i+=p)
+                marks[i] = true;
+        }
+    }
+
+    // Print all prime numbers and store them in prime
+    for (long long p=2; p<limit; p++)
+    {
+        if (!marks[p])
+        {
+            prime[primeSize]=p;
+            primeSize++;
+        }
+    }
 
 
+    omp_set_num_threads(N_THREADS);
+    #pragma omp parallel shared(primeFull)
+    {
+
+        int id, thread_limit,thread_n;
+        id = omp_get_thread_num();
+        thread_limit =  limit<1024 ? limit : 1024; 
+
+        long long low = (long long)floor(n/N_THREADS)*(id)+limit;
+        long long high = low + thread_limit;
+        thread_n = id==(N_THREADS-1) ? n : (long long)floor(n/N_THREADS)*(id+1)+limit;
+
+        for (low,high; low < thread_n;low+=thread_limit,high+=thread_limit)
+        {
+            if (high >= thread_n)
+                high = thread_n;
+
+            bool mark[thread_limit+1];
+            memset(mark, false, sizeof(mark));
+
+            for (long long i = 0; i < primeSize; i++)
+            {
+                long long loLim = floor(low/prime[i]) * prime[i];
+                if (loLim < low)
+                    loLim += prime[i];
+
+
+                for (long long j=loLim; j<high; j+=prime[i])
+                    mark[j-low] = true;
+
+            }
+
+            for (long long i = low; i<high; i++){
+                if (mark[i - low] == false){
+                    primeFull[i]=false;
+                }
+            }
+        }                  
+    }
+    
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    // Output Execution time
+    outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+               << std::endl;
+    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+              << std::endl;
+
+    for (long long i=0;i<primeSize;i++){
+        outputFile << prime[i]<< std::endl;
+    }
+    for (long long i=0;i<n;i++){
+
+        if(!primeFull[i]){
+            outputFile << i << std::endl;
+        }
+    }
+
+    delete prime;
+    delete primeFull;
 }
 
 int main(int argc, char *argv[])
@@ -319,18 +435,23 @@ int main(int argc, char *argv[])
     std::cin >> n;  
     std::cout << std::endl;
 
-    std::ofstream outputFile1;
-    outputFile1.open("sieveoferatosthenes.txt");
-    SieveOfEratosthenes(n, outputFile1);
-    outputFile1.close();
+    // std::ofstream outputFile1;
+    // outputFile1.open("simple.txt");
+    // SieveOfEratosthenes(n, outputFile1);
+    // outputFile1.close();
 
-    std::ofstream outputFile2;
-    outputFile2.open("sieveoferatosthenesfastmarking.txt");
-    SieveOfEratosthenesFastMarking(n, outputFile2);
-    outputFile2.close();
+    // std::ofstream outputFile2;
+    // outputFile2.open("fastMarking.txt");
+    // SieveOfEratosthenesFastMarking(n, outputFile2);
+    // outputFile2.close();
 
     std::ofstream outputFile3;
-    outputFile3.open("sieveoferatosthenesfastmarkingreorganized.txt");
-    SieveOfEratosthenesFastMarkingReorganized(n, outputFile3);
+    outputFile3.open("block.txt");
+    SieveOfEratosthenesBlock(n, outputFile3);
     outputFile3.close();
+
+    std::ofstream outputFile4;
+    outputFile4.open("blockOMP.txt");
+    SieveOfEratosthenesBlockOMP(n, outputFile4);
+    outputFile4.close();
 }
