@@ -2,11 +2,15 @@
 #include <fstream>
 #include <chrono>
 #include <cmath>
+#include <string>
 #include <bits/stdc++.h>
 #include <omp.h>
+#include <papi.h>
 
 #define N_THREADS 8
 
+int ret;
+int EventSet = PAPI_NULL;
 
 void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
 {
@@ -20,6 +24,9 @@ void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
     // Start time
     auto t1 = std::chrono::high_resolution_clock::now();
 
+    ret = PAPI_start(EventSet);
+    if (ret != PAPI_OK)
+      std::cout << "ERROR: Start PAPI" << std::endl;
     // Calculate primes
     for (long long k = 0; (k + 2) * (k + 2) < n; k++)
     {
@@ -36,11 +43,19 @@ void SieveOfEratosthenes(long long n, std::ofstream &outputFile)
             marks[j] |= (multNum % num == 0);
         }
     }
+    long long values[3];
+    ret = PAPI_stop(EventSet, values);
+    if (ret != PAPI_OK)
+        std::cout << "ERROR: Stop PAPI" << std::endl;
+
+    ret = PAPI_reset(EventSet);
+    if (ret != PAPI_OK)
+        std::cout << "FAIL reset" << std::endl;
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
     // Output Execution time
-    outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+    outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl << "Total Instructions: " << values[0] << std::endl << "L1 Cache Misses: " << values[1] << std::endl << "L2 Cache Misses: " << values[2] << std::endl
                << std::endl;
     std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
               << std::endl;
@@ -72,6 +87,9 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
     // Start time
     auto t1 = std::chrono::high_resolution_clock::now();
 
+    ret = PAPI_start(EventSet);
+    if (ret != PAPI_OK)
+      std::cout << "ERROR: Start PAPI" << std::endl;
     // Calculate primes
     for (long long k = 0; (k + 2) * (k + 2) < n; k++)
     {
@@ -90,11 +108,20 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
         }
     }
 
+    long long values[3];
+    ret = PAPI_stop(EventSet, values);
+    if (ret != PAPI_OK)
+        std::cout << "ERROR: Stop PAPI" << std::endl;
+
+    ret = PAPI_reset(EventSet);
+    if (ret != PAPI_OK)
+        std::cout << "FAIL reset" << std::endl;
+
     auto t2 = std::chrono::high_resolution_clock::now();
 
     // Output Execution time
-    outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
-            << std::endl;
+    outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl << "Total Instructions: " << values[0] << std::endl << "L1 Cache Misses: " << values[1] << std::endl << "L2 Cache Misses: " << values[2] << std::endl
+               << std::endl;
     std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
               << std::endl;
 
@@ -137,6 +164,9 @@ void SieveOfEratosthenesBlock(long long n, std::ofstream &outputFile)
     // Start time
     auto t1 = std::chrono::high_resolution_clock::now();
 
+    ret = PAPI_start(EventSet);
+    if (ret != PAPI_OK)
+      std::cout << "ERROR: Start PAPI" << std::endl;
     for (long long p=2; p*p<limit; p++)
     {
         // If p is not changed, then it is a prime
@@ -191,12 +221,19 @@ void SieveOfEratosthenesBlock(long long n, std::ofstream &outputFile)
         }
                 
     }
+    long long values[3];
+    ret = PAPI_stop(EventSet, values);
+    if (ret != PAPI_OK)
+        std::cout << "ERROR: Stop PAPI" << std::endl;
 
+    ret = PAPI_reset(EventSet);
+    if (ret != PAPI_OK)
+        std::cout << "FAIL reset" << std::endl;
 
     auto t2 = std::chrono::high_resolution_clock::now();
 
     // Output Execution time
-    outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
+    outputFile << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl << "Total Instructions: " << values[0] << std::endl << "L1 Cache Misses: " << values[1] << std::endl << "L2 Cache Misses: " << values[2] << std::endl
                << std::endl;
     std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000000.0 << "s" << std::endl
               << std::endl;
@@ -431,40 +468,108 @@ void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
         }
     }
     delete prime,primeFull;
+}
 
+void value_testing() {
+    long long n;
+    std::cout << "N: ";
+    std::cin >> n;
 
+    std::ofstream outputFile;
+    std::cout << n << std::endl;
+
+    outputFile.open("simple" + std::to_string(n) + ".txt");
+    SieveOfEratosthenes(n, outputFile);
+    outputFile.close();
+
+    outputFile.open("fastMarking" + std::to_string(n) + ".txt");
+    SieveOfEratosthenesFastMarking(n, outputFile);
+    outputFile.close();
+
+    outputFile.open("block" + std::to_string(n) + ".txt");
+    SieveOfEratosthenesBlock(n, outputFile);
+    outputFile.close();
+
+    outputFile.open("blockOpm"+ std::to_string(n) + ".txt");
+    SieveOfEratosthenesBlockOMP(n, outputFile);
+    outputFile.close();
+
+    outputFile.open("blockOpmTask"+ std::to_string(n) + ".txt");
+    SieveOfEratosthenesBlockOMPTask(n, outputFile);
+    outputFile.close();
+}
+
+void main_testing() {
+    long long n;
+    std::ofstream outputFile;
+    for (int i = 25; i <= 32; i++) {
+        n = pow(2, i);
+        std::cout << n << std::endl;
+
+        outputFile.open("simple10pow" + std::to_string(i) + ".txt");
+        SieveOfEratosthenes(n, outputFile);
+        outputFile.close();
+
+        outputFile.open("fastMarking10pow" + std::to_string(i) + ".txt");
+        SieveOfEratosthenesFastMarking(n, outputFile);
+        outputFile.close();
+
+        outputFile.open("block10pow" + std::to_string(i) + ".txt");
+        SieveOfEratosthenesBlock(n, outputFile);
+        outputFile.close();
+    }
 }
 
 int main(int argc, char *argv[])
 {
-    long long n;
+    ret = PAPI_library_init(PAPI_VER_CURRENT);
+    if (ret != PAPI_VER_CURRENT)
+        std::cout << "FAIL init" << std::endl;
 
-    std::cout << "N: ";
-    std::cin >> n;  
-    std::cout << std::endl;
+    ret = PAPI_create_eventset(&EventSet);
+    if (ret != PAPI_OK)
+        std::cout << "ERROR: create eventset" << std::endl;
 
-    // std::ofstream outputFile1;
-    // outputFile1.open("simple.txt");
-    // SieveOfEratosthenes(n, outputFile1);
-    // outputFile1.close();
+    ret = PAPI_add_event(EventSet, PAPI_TOT_INS);
+    if (ret != PAPI_OK)
+        std::cout << "ERROR: PAPI_TOT_INS" << std::endl;
 
-    // std::ofstream outputFile2;
-    // outputFile2.open("fastMarking.txt");
-    // SieveOfEratosthenesFastMarking(n, outputFile2);
-    // outputFile2.close();
+    ret = PAPI_add_event(EventSet, PAPI_L1_DCM);
+    if (ret != PAPI_OK)
+        std::cout << "ERROR: PAPI_L1_DCM" << std::endl;
 
-    std::ofstream outputFile3;
-    outputFile3.open("block.txt");
-    SieveOfEratosthenesBlock(n, outputFile3);
-    outputFile3.close();
+    ret = PAPI_add_event(EventSet, PAPI_L2_DCM);
+    if (ret != PAPI_OK)
+        std::cout << "ERROR: PAPI_L2_DCM" << std::endl;
 
-    std::ofstream outputFile4;
-    outputFile4.open("blockOMP.txt");
-    SieveOfEratosthenesBlockOMP(n, outputFile4);
-    outputFile4.close();
+    int i;
+    std::cout << "Mode\n(1) - Value Testing\n(2) - Main Testing\n:";
+    std::cin >> i;
+    switch (i)
+    {
+    case 1:
+        value_testing();
+        break;
+    case 2:
+        main_testing();
+    default:
+        std::cout << "Invalid Value Aborting..." << std::endl;
+        break;
+    }
 
-    std::ofstream outputFile5;
-    outputFile5.open("blockOMPTask.txt");
-    SieveOfEratosthenesBlockOMPTask(n, outputFile5);
-    outputFile5.close();
+    ret = PAPI_remove_event(EventSet, PAPI_TOT_INS);
+    if (ret != PAPI_OK)
+        std::cout << "FAIL remove event PAPI_TOT_INS" << std::endl;
+
+    ret = PAPI_remove_event(EventSet, PAPI_L1_DCM);
+    if (ret != PAPI_OK)
+        std::cout << "FAIL remove event PAPI_L1_DCM" << std::endl;
+
+    ret = PAPI_remove_event(EventSet, PAPI_L2_DCM);
+    if (ret != PAPI_OK)
+        std::cout << "FAIL remove event PAPI_L2_DCM" << std::endl;
+
+    ret = PAPI_destroy_eventset(&EventSet);
+    if (ret != PAPI_OK)
+        std::cout << "FAIL destroy" << std::endl;
 }
