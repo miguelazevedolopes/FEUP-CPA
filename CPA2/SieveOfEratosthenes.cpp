@@ -115,7 +115,6 @@ void SieveOfEratosthenesFastMarking(long long n, std::ofstream &outputFile)
     delete marks;
 }
 
-// TODO
 void SieveOfEratosthenesBlock(long long n, std::ofstream &outputFile)
 {
     std::cout << "Calculating SieveOfEratosthenesBlock" << std::endl;
@@ -263,10 +262,14 @@ void SieveOfEratosthenesBlockOMP(long long n, std::ofstream &outputFile)
     omp_set_num_threads(N_THREADS);
     #pragma omp parallel shared(primeFull)
     {
-
         int id, thread_limit,thread_n;
         id = omp_get_thread_num();
-        thread_limit =  limit<1024 ? limit : 1024; 
+
+        // 40 000 is the size of each segment handled by a thread/core.
+        // Considering 1 bool occupies about 1 byte and L1 cache in my CPU is 64 kilobytes (64 000 bytes)
+        // 40 000 was the threshold value that presented better results
+        // (higher and lower values had worst results )
+        thread_limit =  limit<40000 ? limit : 40000; 
 
         long long low = (long long)floor(n/N_THREADS)*(id)+limit;
         long long high = low + thread_limit;
@@ -345,16 +348,20 @@ void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
     // Start time
     auto t1 = std::chrono::high_resolution_clock::now();
 
-    for (long long p=2; p*p<limit; p++)
-    {
-        // If p is not changed, then it is a prime
-        if (marks[p] == false)
+    long long stop_limit =floor(sqrt(limit)) + 1;
+    #pragma omp parallel
+    #pragma omp single
+    #pragma omp taskloop num_tasks(20)
+        for (long long p=2; p<stop_limit; p++)
         {
-            // Update all multiples of p
-            for (long long i=p*p; i<limit; i+=p)
-                marks[i] = true;
+            // If p is not changed, then it is a prime
+            if (marks[p] == false)
+            {
+                // Update all multiples of p
+                for (long long i=p*p; i<limit; i+=p)
+                    marks[i] = true;
+            }
         }
-    }
  
 
     // Print all prime numbers and store them in prime
