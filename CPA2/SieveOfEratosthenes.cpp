@@ -295,23 +295,20 @@ void SieveOfEratosthenesBlockOMP(long long n,int n_cores, std::ofstream &outputF
     omp_set_num_threads(n_cores);
     #pragma omp parallel shared(primeFull)
     {
-        int id, thread_limit,thread_n;
+        long long id,thread_n;
         id = omp_get_thread_num();
 
-        // 40 000 is the size of each segment handled by a thread/core.
-        // Considering 1 bool occupies about 1 byte and L1 cache in my CPU is 64 kilobytes (64 000 bytes)
-        // 40 000 was the threshold value that presented better results
-        // (higher and lower values had worst results )
-        thread_limit =  limit<40000 ? limit : 40000; 
 
         // In each iteration the program will calculate prime numbers
         // in range [low,high]. These values are updated after each
         // iteration
         long long low = (long long)floor(n/n_cores)*(id)+limit;
-        long long high = low + thread_limit;
+        long long high = low + limit;
         thread_n = id==(n_cores-1) ? n : (long long)floor(n/n_cores)*(id+1)+limit;
 
-        for (low,high; low < thread_n;low+=thread_limit,high+=thread_limit)
+        // std::cout<<"\nId:"<<id<<" Low:"<<low<<" High:"<<high<<" Thread N:"<<thread_n<<" N:"<<n<<" Limit:"<<limit;
+
+        for (low,high; low < thread_n;low+=limit,high+=limit)
         {
             if (high >= thread_n)
                 high = thread_n;
@@ -369,7 +366,7 @@ void SieveOfEratosthenesBlockOMP(long long n,int n_cores, std::ofstream &outputF
     delete primeFull;
 }
 
-void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
+void SieveOfEratosthenesBlockOMPTask(long long n,int n_tasks, std::ofstream &outputFile)
 {
     std::cout << "Calculating SieveOfEratosthenesBlockOMPTask" << std::endl;
 
@@ -418,7 +415,7 @@ void SieveOfEratosthenesBlockOMPTask(long long n, std::ofstream &outputFile)
     // Start calculating the primes in range [limit,n-1]
     #pragma omp parallel
     #pragma omp single
-    #pragma omp taskloop num_tasks(20)
+    #pragma omp taskloop num_tasks(n_tasks)
         for (long long low=limit; low < n;low+=limit){
             long long high=low+limit;
             if (high >= n)
@@ -484,24 +481,24 @@ void value_testing() {
     std::ofstream outputFile;
     std::cout << n << std::endl;
 
-    outputFile.open("simple" + std::to_string(n) + ".txt");
-    SieveOfEratosthenes(n, outputFile);
-    outputFile.close();
+    // outputFile.open("simple" + std::to_string(n) + ".txt");
+    // SieveOfEratosthenes(n, outputFile);
+    // outputFile.close();
 
-    outputFile.open("fastMarking" + std::to_string(n) + ".txt");
-    SieveOfEratosthenesFastMarking(n, outputFile);
-    outputFile.close();
+    // outputFile.open("fastMarking" + std::to_string(n) + ".txt");
+    // SieveOfEratosthenesFastMarking(n, outputFile);
+    // outputFile.close();
 
-    outputFile.open("block" + std::to_string(n) + ".txt");
-    SieveOfEratosthenesBlock(n, outputFile);
-    outputFile.close();
+    // outputFile.open("block" + std::to_string(n) + ".txt");
+    // SieveOfEratosthenesBlock(n, outputFile);
+    // outputFile.close();
 
     outputFile.open("blockOpm"+ std::to_string(n) + ".txt");
     SieveOfEratosthenesBlockOMP(n,8,outputFile);
     outputFile.close();
 
     outputFile.open("blockOpmTask"+ std::to_string(n) + ".txt");
-    SieveOfEratosthenesBlockOMPTask(n, outputFile);
+    SieveOfEratosthenesBlockOMPTask(n,8,outputFile);
     outputFile.close();
 }
 
