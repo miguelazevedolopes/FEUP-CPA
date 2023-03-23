@@ -306,8 +306,6 @@ void SieveOfEratosthenesBlockOMP(long long n,int n_cores, std::ofstream &outputF
         long long high = low + limit;
         thread_n = id==(n_cores-1) ? n : (long long)floor(n/n_cores)*(id+1)+limit;
 
-        // std::cout<<"\nId:"<<id<<" Low:"<<low<<" High:"<<high<<" Thread N:"<<thread_n<<" N:"<<n<<" Limit:"<<limit;
-
         for (low,high; low < thread_n;low+=limit,high+=limit)
         {
             if (high >= thread_n)
