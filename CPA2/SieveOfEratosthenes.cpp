@@ -468,7 +468,8 @@ void SieveOfEratosthenesBlockOMPTask(long long n,int n_tasks, std::ofstream &out
         }
     }
 
-    delete prime,primeFull;
+    delete prime;
+    delete primeFull;
 }
 
 void value_testing() {
@@ -479,17 +480,17 @@ void value_testing() {
     std::ofstream outputFile;
     std::cout << n << std::endl;
 
-    // outputFile.open("simple" + std::to_string(n) + ".txt");
-    // SieveOfEratosthenes(n, outputFile);
-    // outputFile.close();
+    outputFile.open("simple" + std::to_string(n) + ".txt");
+    SieveOfEratosthenes(n, outputFile);
+    outputFile.close();
 
-    // outputFile.open("fastMarking" + std::to_string(n) + ".txt");
-    // SieveOfEratosthenesFastMarking(n, outputFile);
-    // outputFile.close();
+    outputFile.open("fastMarking" + std::to_string(n) + ".txt");
+    SieveOfEratosthenesFastMarking(n, outputFile);
+    outputFile.close();
 
-    // outputFile.open("block" + std::to_string(n) + ".txt");
-    // SieveOfEratosthenesBlock(n, outputFile);
-    // outputFile.close();
+    outputFile.open("block" + std::to_string(n) + ".txt");
+    SieveOfEratosthenesBlock(n, outputFile);
+    outputFile.close();
 
     outputFile.open("blockOpm"+ std::to_string(n) + ".txt");
     SieveOfEratosthenesBlockOMP(n,8,outputFile);
@@ -518,6 +519,20 @@ void main_testing() {
         outputFile.open("block10pow" + std::to_string(i) + ".txt");
         SieveOfEratosthenesBlock(n, outputFile);
         outputFile.close();
+        
+        if (i == 32) {
+            for (int p = 1; p <= omp_get_num_procs(); p++) {
+                outputFile.open("blockOpm10pow"+ std::to_string(i) + "P" + std::to_string(p) + ".txt");
+                SieveOfEratosthenesBlockOMP(n, p, outputFile);
+                outputFile.close();
+            }
+
+            for (int t = 1; t <= 50; t < 12 ? t++ : (t == 12 ? t += 8: t += 10)) {
+                outputFile.open("blockOpmTask10pow"+ std::to_string(i) + "T" + std::to_string(t) + ".txt");
+                SieveOfEratosthenesBlockOMPTask(n, t, outputFile);
+                outputFile.close();
+            }
+        }
     }
 }
 
@@ -553,7 +568,7 @@ int main(int argc, char *argv[])
         break;
     case 2:
         main_testing();
-        
+        break;
     default:
         std::cout << "Invalid Value Aborting..." << std::endl;
         break;
