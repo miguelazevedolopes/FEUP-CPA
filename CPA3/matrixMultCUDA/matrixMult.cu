@@ -220,11 +220,11 @@ int main(int argc, char **argv)
   dim3 dimsB(0, 0, 1);
 
   // width of Matrix A
-  dimsA.x = 1024*8;
-  dimsA.y = 1024*8;
+  dimsA.x = 1024;
+  dimsA.y = 1024;
 
-  dimsB.x = 1024*8;
-  dimsB.y = 1024*8;
+  dimsB.x = 1024;
+  dimsB.y = 1024;
 
   if (dimsA.x != dimsB.y)
   {
