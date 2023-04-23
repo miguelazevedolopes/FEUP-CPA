@@ -9,6 +9,7 @@ using namespace cl::sycl;
 
 class mxm_kernel;
 
+// Not really sure about this one to be honest
 template <typename T>
 bool local_mxm(cl::sycl::queue &q, T *MA, T *MB, T *MC, int matSize, int blockSize)
 {
