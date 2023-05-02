@@ -39,8 +39,6 @@ __global__ void MatrixMulCUDA(float *C, float *A,
   // that is computed by the thread
   float Csub = 0;
 
-  // Loop over all the sub-matrices of A and B
-  // required to compute the block sub-matrix
   for (int a = aBegin, b = bBegin;
        a <= aEnd;
        a += aStep, b += bStep)
@@ -131,12 +129,6 @@ int MatrixMultiply(int block_size, const dim3 &dimsA,
   float *h_C;
   checkCudaErrors(cudaMallocHost(&h_C, mem_size_C));
 
-  if (h_C == NULL)
-  {
-    fprintf(stderr, "Failed to allocate host matrix C!\n");
-    exit(EXIT_FAILURE);
-  }
-
   checkCudaErrors(cudaMalloc(reinterpret_cast<void **>(&d_A), mem_size_A));
   checkCudaErrors(cudaMalloc(reinterpret_cast<void **>(&d_B), mem_size_B));
   checkCudaErrors(cudaMalloc(reinterpret_cast<void **>(&d_C), mem_size_C));
@@ -166,17 +158,9 @@ int MatrixMultiply(int block_size, const dim3 &dimsA,
   // Record the start event
   checkCudaErrors(cudaEventRecord(start, stream));
 
-  // Performs warmup operation using matrixMul CUDA kernel
-  if (block_size == 16)
-  {
-    MatrixMulCUDA<16>
-        <<<grid, threads, 0, stream>>>(d_C, d_A, d_B, dimsA.x, dimsB.x);
-  }
-  else
-  {
-    MatrixMulCUDA<32>
-        <<<grid, threads, 0, stream>>>(d_C, d_A, d_B, dimsA.x, dimsB.x);
-  }
+  // Performs operation using CUDA kernel
+  MatrixMulCUDA<32>
+      <<<grid, threads, 0, stream>>>(d_C, d_A, d_B, dimsA.x, dimsB.x);
 
   printf("Done\n");
 
@@ -189,7 +173,7 @@ int MatrixMultiply(int block_size, const dim3 &dimsA,
   float msecTotal = 0.0f;
   checkCudaErrors(cudaEventElapsedTime(&msecTotal, start, stop));
 
-  printf("Time = %.3f msec", msecTotal);
+  printf("Time = %.3f msec\n", msecTotal);
 
   // Copy result from device to host
   checkCudaErrors(
@@ -216,27 +200,33 @@ int main(int argc, char **argv)
 {
   int block_size = 32;
 
-  dim3 dimsA(0, 0, 1);
-  dim3 dimsB(0, 0, 1);
+  for (int n = 1024; n <= 8192; n+=1024) {
+    dim3 dimsA(0, 0, 1);
+    dim3 dimsB(0, 0, 1);
 
-  // width of Matrix A
-  dimsA.x = 1024;
-  dimsA.y = 1024;
+    // width of Matrix A
+    dimsA.x = n;
+    dimsA.y = n;
 
-  dimsB.x = 1024;
-  dimsB.y = 1024;
+    dimsB.x = n;
+    dimsB.y = n;
 
-  if (dimsA.x != dimsB.y)
-  {
-    printf("Error: outer matrix dimensions must be equal. (%d != %d)\n",
-           dimsA.x, dimsB.y);
-    exit(EXIT_FAILURE);
+    if (dimsA.x != dimsB.y)
+    {
+      printf("Error: outer matrix dimensions must be equal. (%d != %d)\n",
+            dimsA.x, dimsB.y);
+      exit(EXIT_FAILURE);
+    }
+
+    printf("MatrixA(%d,%d), MatrixB(%d,%d)\n", dimsA.x, dimsA.y,
+          dimsB.x, dimsB.y);
+
+    int matrix_result = MatrixMultiply(block_size, dimsA, dimsB);
+
+    printf("\n");
+
+    if (matrix_result) return matrix_result;
   }
 
-  printf("MatrixA(%d,%d), MatrixB(%d,%d)\n", dimsA.x, dimsA.y,
-         dimsB.x, dimsB.y);
-
-  int matrix_result = MatrixMultiply(block_size, dimsA, dimsB);
-
-  return matrix_result;
+  return 0;
 }
