@@ -56,63 +56,64 @@ bool local_mxm(cl::sycl::queue &q, T *MA, T *MB, T *MC, int matSize, int blockSi
         buffer<T> bB(MB, dimensions, props);
         buffer<T> bC(MC, dimensions, props);
 
-        q.submit([&](handler &cgh)
-                 {
-            auto pA = bA.template get_access<access::mode::read>(cgh);
-            auto pB = bB.template get_access<access::mode::read>(cgh);
-            auto pC = bC.template get_access<access::mode::write>(cgh);
-            auto localRange = range<1>(blockSize * blockSize);
+        q.submit([&](handler& cgh)
+            {
+                auto pA = bA.template get_access<access::mode::read>(cgh);
+                auto pB = bB.template get_access<access::mode::read>(cgh);
+                auto pC = bC.template get_access<access::mode::write>(cgh);
+                auto localRange = range<1>(blockSize * blockSize);
 
-            accessor<T, 1, access::mode::read_write, access::target::local> pBA(
-                localRange, cgh);
-            accessor<T, 1, access::mode::read_write, access::target::local> pBB(
-                localRange, cgh);
+                accessor<T, 1, access::mode::read_write, access::target::local> pBA(
+                    localRange, cgh);
+                accessor<T, 1, access::mode::read_write, access::target::local> pBB(
+                    localRange, cgh);
 
-            cgh.parallel_for<mxm_kernel>(
-                nd_range<2>{range<2>(matSize, matSize),
-                range<2>(blockSize, blockSize)},
-                [=](nd_item<2> it) {
-                    // Current block
-                    int blockX = it.get_group(1);
-                    int blockY = it.get_group(0);
+                cgh.parallel_for<mxm_kernel>(
+                    nd_range<2>{range<2>(matSize, matSize),
+                    range<2>(blockSize, blockSize)},
+                    [=](nd_item<2> it) {
+                        // Current block
+                        int blockX = it.get_group(1);
+                        int blockY = it.get_group(0);
 
-                    // Current local item
-                    int localX = it.get_local_id(1);
-                    int localY = it.get_local_id(0);
+                        // Current local item
+                        int localX = it.get_local_id(1);
+                        int localY = it.get_local_id(0);
 
-                    // Start in the A matrix
-                    int a_start = matSize * blockSize * blockY;
-                    // End in the b matrix
-                    int a_end = a_start + matSize - 1;
-                    // Start in the b matrix
-                    int b_start = blockSize * blockX;
+                        // Start in the A matrix
+                        int a_start = matSize * blockSize * blockY;
+                        // End in the b matrix
+                        int a_end = a_start + matSize - 1;
+                        // Start in the b matrix
+                        int b_start = blockSize * blockX;
 
-                    // Result for the current C(i,j) element
-                    T tmp = 0.0f;
-                    // We go through all a, b blocks
-                    for (int a = a_start, b = b_start; a <= a_end;
-                        a += blockSize, b += (blockSize * matSize)) {
-                        // Copy the values in shared memory collectively
-                        pBA[localY * blockSize + localX] =
-                            pA[a + matSize * localY + localX];
-                        // Note the swap of X/Y to maintain contiguous access
-                        pBB[localX * blockSize + localY] =
-                            pB[b + matSize * localY + localX];
-                        it.barrier(access::fence_space::local_space);
-                        // Now each thread adds the value of its sum
-                        for (int k = 0; k < blockSize; k++) {
-                            tmp +=
-                                pBA[localY * blockSize + k] * pBB[localX * blockSize + k];
+                        // Result for the current C(i,j) element
+                        T tmp = 0.0f;
+                        // We go through all a, b blocks
+                        for (int a = a_start, b = b_start; a <= a_end;
+                            a += blockSize, b += (blockSize * matSize)) {
+                            // Copy the values in shared memory collectively
+                            pBA[localY * blockSize + localX] =
+                                pA[a + matSize * localY + localX];
+                            // Note the swap of X/Y to maintain contiguous access
+                            pBB[localX * blockSize + localY] =
+                                pB[b + matSize * localY + localX];
+                            it.barrier(access::fence_space::local_space);
+                            // Now each thread adds the value of its sum
+                            for (int k = 0; k < blockSize; k++) {
+                                tmp +=
+                                    pBA[localY * blockSize + k] * pBB[localX * blockSize + k];
+                            }
+                            // The barrier ensures that all threads have written to local
+                            // memory before continuing
+                            it.barrier(access::fence_space::local_space);
                         }
-                        // The barrier ensures that all threads have written to local
-                        // memory before continuing
-                        it.barrier(access::fence_space::local_space);
-                    }
-                    auto elemIndex = it.get_global_id(0) * it.get_global_range()[1] +
-                        it.get_global_id(1);
-                    // Each thread updates its position
-                    pC[elemIndex] = tmp;
-                }); });
+                        auto elemIndex = it.get_global_id(0) * it.get_global_range()[1] +
+                            it.get_global_id(1);
+                        // Each thread updates its position
+                        pC[elemIndex] = tmp;
+                    });
+                });
     }
     return false;
 }
@@ -140,56 +141,55 @@ int main(int argc, char *argv[])
     float *MA;
     float *MB;
     float *MC;
+    
+    for (int i = 1024; i < 8192; i += 1024) {
+        MA = new float[i * i];
+        MB = new float[i * i];
+        MC = new float[i * i];
 
-    // Change value;
-    int matSize = 1024;
+        std::cout << "Matrix Size N = " << i << std::endl
+            << std::endl;
 
-    MA = new float[matSize * matSize];
-    MB = new float[matSize * matSize];
-    MC = new float[matSize * matSize];
+        // Sequencial
+        initMatrix(MA, MB, MC, i);
+        std::cout << "Sequential run" << std::endl;
+        auto start = std::chrono::high_resolution_clock::now();
+        block_host(MA, MB, MC, i, 32);
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
+            << std::endl;
 
-    std::cout << "Matrix Size N = " << matSize << std::endl
-              << std::endl;
-
-    // Sequencial
-    initMatrix(MA, MB, MC, matSize);
-    std::cout << "Sequential run" << std::endl;
-    auto start = std::chrono::high_resolution_clock::now();
-    block_host(MA, MB, MC, matSize, 32);
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
-              << std::endl;
-
-    // OPENMP
-    initMatrix(MA, MB, MC, matSize);
-    std::cout << "OPENMP run with " << omp_get_num_procs() << " threads" << std::endl;
-    start = std::chrono::high_resolution_clock::now();
-    block_host_omp(MA, MB, MC, matSize, 32);
-    end = std::chrono::high_resolution_clock::now();
-    std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
-              << std::endl;
-
-    // SYCL
-    auto platforms = sycl::platform::get_platforms();
-
-    std::vector<device> ds = {platforms[1].get_devices()[0], platforms[3].get_devices()[0]};
-
-    for (auto d : ds)
-    {
-        queue q(d);
-
-        initMatrix(MA, MB, MC, matSize);
-        std::cout << "OPENCL with " << q.get_device().get_info<sycl::info::device::name>() << std::endl;
+        // OPENMP
+        initMatrix(MA, MB, MC, i);
+        std::cout << "OPENMP run with " << omp_get_num_procs() << " threads" << std::endl;
         start = std::chrono::high_resolution_clock::now();
-        local_mxm(q, MA, MB, MC, matSize, 32);
+        block_host_omp(MA, MB, MC, i, 32);
         end = std::chrono::high_resolution_clock::now();
         std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
-                  << std::endl;
-    }
+            << std::endl;
 
-    delete[] MA;
-    delete[] MB;
-    delete[] MC;
+        // SYCL
+        auto platforms = sycl::platform::get_platforms();
+
+        std::vector<device> ds = { platforms[1].get_devices()[0], platforms[3].get_devices()[0] };
+
+        for (auto d : ds)
+        {
+            queue q(d);
+
+            initMatrix(MA, MB, MC, i);
+            std::cout << "OPENCL with " << q.get_device().get_info<sycl::info::device::name>() << std::endl;
+            start = std::chrono::high_resolution_clock::now();
+            local_mxm(q, MA, MB, MC, i, 32);
+            end = std::chrono::high_resolution_clock::now();
+            std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
+                << std::endl;
+        }
+
+        delete[] MA;
+        delete[] MB;
+        delete[] MC;
+    }
 
     return 0;
 }
