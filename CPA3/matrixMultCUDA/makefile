@@ -2,6 +2,6 @@ all:
 	nvcc ./matrixMult.cu -o MatrixMult.exe
 
 clean:
-	rm -f vectorAdd.exe
-	rm -f vectorAdd.exp
-	rm -f vectorAdd.lib
+	rm -f matrixMult.exe
+	rm -f matrixMult.exp
+	rm -f matrixMult.lib

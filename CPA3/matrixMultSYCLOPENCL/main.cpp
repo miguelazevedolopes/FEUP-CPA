@@ -39,6 +39,7 @@ void block_host(float *MA, float *MB, float *MC, int matSize, int block_size)
                     }
 }
 
+// Not really sure about this one to be honest
 template <typename T>
 bool local_mxm(cl::sycl::queue &q, T *MA, T *MB, T *MC, int matSize, int blockSize)
 {
