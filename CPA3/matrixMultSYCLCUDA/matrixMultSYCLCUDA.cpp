@@ -110,29 +110,28 @@ int main(int argc, char *argv[])
   float *MB;
   float *MC;
 
-  // Change value;
-  int matSize = 1024;
+  for (int n = 1024; n <= 8192; n += 1024) {
+    MA = new float[n * n];
+    MB = new float[n * n];
+    MC = new float[n * n];
 
-  MA = new float[matSize * matSize];
-  MB = new float[matSize * matSize];
-  MC = new float[matSize * matSize];
+    std::cout << "Matrix Size N = " << n << std::endl
+              << std::endl;
 
-  std::cout << "Matrix Size N = " << matSize << std::endl
-            << std::endl;
+    queue q(gpu_selector_v);
 
-  queue q(gpu_selector_v);
+    initMatrix(MA, MB, MC, n);
+    std::cout << "CUDA with " << q.get_device().get_info<sycl::info::device::name>() << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
+    local_mxm(q, MA, MB, MC, n, 32);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
+              << std::endl;
 
-  initMatrix(MA, MB, MC, matSize);
-  std::cout << "CUDA with " << q.get_device().get_info<sycl::info::device::name>() << std::endl;
-  auto start = std::chrono::high_resolution_clock::now();
-  local_mxm(q, MA, MB, MC, matSize, 32);
-  auto end = std::chrono::high_resolution_clock::now();
-  std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
-            << std::endl;
-
-  delete[] MA;
-  delete[] MB;
-  delete[] MC;
+    delete[] MA;
+    delete[] MB;
+    delete[] MC;
+  }
 
   return 0;
 }
