@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
         // SYCL
         auto platforms = sycl::platform::get_platforms();
 
-        std::vector<device> ds = { platforms[1].get_devices()[0], platforms[3].get_devices()[0] };
+        std::vector<device> ds = { platforms[2].get_devices()[0], platforms[3].get_devices()[0] };
 
         for (auto d : ds)
         {
