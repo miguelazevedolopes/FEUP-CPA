@@ -4,8 +4,10 @@
 #include <cmath>
 #include <ctime>
 #include <iostream>
+#include <iomanip>
 
 using namespace cl::sycl;
+#define NSEC_IN_MSEC 1000000.0
 
 class mxm_kernel;
 
@@ -18,8 +20,7 @@ bool local_mxm(cl::sycl::queue &q, T *MA, T *MB, T *MC, int matSize, int blockSi
   buffer<T> bB(MB, dimensions, props);
   buffer<T> bC(MC, dimensions, props);
 
-  auto start = std::chrono::high_resolution_clock::now();
-  q.submit([&](handler &cgh)
+  sycl::event event = q.submit([&](handler &cgh)
            {
             auto pA = bA.template get_access<access::mode::read>(cgh);
             auto pB = bB.template get_access<access::mode::read>(cgh);
@@ -77,9 +78,13 @@ bool local_mxm(cl::sycl::queue &q, T *MA, T *MB, T *MC, int matSize, int blockSi
                     pC[elemIndex] = tmp;
                 }); });
 
-  auto end = std::chrono::high_resolution_clock::now();
-  std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
-            << std::endl;
+  event.wait();
+  uint64_t start =
+      event.get_profiling_info<sycl::info::event_profiling::command_start>();
+  uint64_t end =
+      event.get_profiling_info<sycl::info::event_profiling::command_end>();
+  double duration = static_cast<double>(end - start) / NSEC_IN_MSEC;
+  std::cout << "Time = " << std::fixed << std::setprecision(3) << duration << " msec" << std::endl << std::endl;
 
   return false;
 }
@@ -108,6 +113,8 @@ int main(int argc, char *argv[])
   float *MB;
   float *MC;
 
+  sycl::property_list prop_list{sycl::property::queue::enable_profiling()};
+
   for (int n = 1024; n <= 8192; n += 1024)
   {
     MA = new float[n * n];
@@ -116,7 +123,7 @@ int main(int argc, char *argv[])
 
     std::cout << "Matrix Size N = " << n << std::endl;
 
-    queue q(gpu_selector_v);
+    queue q(gpu_selector_v, prop_list);
 
     initMatrix(MA, MB, MC, n);
     std::cout << "CUDA with " << q.get_device().get_info<sycl::info::device::name>() << std::endl;
