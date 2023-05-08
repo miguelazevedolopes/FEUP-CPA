@@ -10,7 +10,6 @@ using namespace cl::sycl;
 
 class mxm_kernel;
 
-// Not really sure about this one to be honest
 void block_host_omp(float *MA, float *MB, float *MC, int matSize, int block_size)
 {
     int bi, bj, bk;
@@ -26,7 +25,6 @@ void block_host_omp(float *MA, float *MB, float *MC, int matSize, int block_size
                     }
 }
 
-// Not really sure about this one to be honest
 void block_host(float *MA, float *MB, float *MC, int matSize, int block_size)
 {
     for (int bIndexJ = 0; bIndexJ < matSize; bIndexJ += block_size)
@@ -39,22 +37,16 @@ void block_host(float *MA, float *MB, float *MC, int matSize, int block_size)
                     }
 }
 
-// Not really sure about this one to be honest
 template <typename T>
 bool local_mxm(cl::sycl::queue &q, T *MA, T *MB, T *MC, int matSize, int blockSize)
 {
-    {
-        /* Buffers can be constructed with property lists. In this example,
-         * the buffer is given the property "use host pointer", which tells
-         * the runtime to use the host pointer for all data storage (instead
-         * of making copies internally). Additionally, when running on a
-         * device that shares memory with the host (for example a CPU),
-         * "zero-copy" memory optimisations can be used by the driver. */
         range<1> dimensions(matSize * matSize);
         const property_list props = {property::buffer::use_host_ptr()};
         buffer<T> bA(MA, dimensions, props);
         buffer<T> bB(MB, dimensions, props);
         buffer<T> bC(MC, dimensions, props);
+
+        auto start = std::chrono::high_resolution_clock::now();
 
         q.submit([&](handler& cgh)
             {
@@ -114,7 +106,9 @@ bool local_mxm(cl::sycl::queue &q, T *MA, T *MB, T *MC, int matSize, int blockSi
                         pC[elemIndex] = tmp;
                     });
                 });
-    }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
+        << std::endl;
     return false;
 }
 
@@ -131,7 +125,7 @@ void initMatrix(float *MA, float *MB, float *MC, int matSize)
                 MA[i * matSize + j] = 1.0f;
             }
             MB[i * matSize + j] = 2.0f;
-            MC[i * matSize + j] = 0.0f; // i * matSize + j;
+            MC[i * matSize + j] = 0.0f;
         }
     }
 }
@@ -142,16 +136,15 @@ int main(int argc, char *argv[])
     float *MB;
     float *MC;
     
-    for (int i = 1024; i < 8192; i += 1024) {
+    for (int i = 1024; i <= 8192; i += 1024) {
         MA = new float[i * i];
         MB = new float[i * i];
         MC = new float[i * i];
 
-        std::cout << "Matrix Size N = " << i << std::endl
-            << std::endl;
+        std::cout << "Matrix Size N = " << i << std::endl;
 
         // Sequencial
-        initMatrix(MA, MB, MC, i);
+        /*initMatrix(MA, MB, MC, i);
         std::cout << "Sequential run" << std::endl;
         auto start = std::chrono::high_resolution_clock::now();
         block_host(MA, MB, MC, i, 32);
@@ -166,12 +159,12 @@ int main(int argc, char *argv[])
         block_host_omp(MA, MB, MC, i, 32);
         end = std::chrono::high_resolution_clock::now();
         std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
-            << std::endl;
+            << std::endl;*/
 
         // SYCL
         auto platforms = sycl::platform::get_platforms();
 
-        std::vector<device> ds = { platforms[2].get_devices()[0], platforms[3].get_devices()[0] };
+        std::vector<device> ds = { platforms[2].get_devices()[0]/*,  platforms[3].get_devices()[0]*/};
 
         for (auto d : ds)
         {
@@ -179,12 +172,10 @@ int main(int argc, char *argv[])
 
             initMatrix(MA, MB, MC, i);
             std::cout << "OPENCL with " << q.get_device().get_info<sycl::info::device::name>() << std::endl;
-            start = std::chrono::high_resolution_clock::now();
             local_mxm(q, MA, MB, MC, i, 32);
-            end = std::chrono::high_resolution_clock::now();
-            std::cout << "Time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl
-                << std::endl;
         }
+
+        std::cout << std::endl;
 
         delete[] MA;
         delete[] MB;
