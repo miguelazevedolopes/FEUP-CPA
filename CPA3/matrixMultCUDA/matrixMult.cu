@@ -113,7 +113,7 @@ int MatrixMultiply(int block_size, const dim3 &dimsA,
   unsigned int mem_size_B = sizeof(float) * size_B;
   float *h_B;
   checkCudaErrors(cudaMallocHost(&h_B, mem_size_B));
-  cudaStream_t stream;
+
 
   // Initialize host memory
   const float valB = 0.01f;
@@ -133,18 +133,11 @@ int MatrixMultiply(int block_size, const dim3 &dimsA,
   checkCudaErrors(cudaMalloc(reinterpret_cast<void **>(&d_B), mem_size_B));
   checkCudaErrors(cudaMalloc(reinterpret_cast<void **>(&d_C), mem_size_C));
 
-  // Allocate CUDA events that we'll use for timing
-  cudaEvent_t start, stop;
-  checkCudaErrors(cudaEventCreate(&start));
-  checkCudaErrors(cudaEventCreate(&stop));
-
-  checkCudaErrors(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
-
   // copy host memory to device
   checkCudaErrors(
-      cudaMemcpyAsync(d_A, h_A, mem_size_A, cudaMemcpyHostToDevice, stream));
+      cudaMemcpy(d_A, h_A, mem_size_A, cudaMemcpyHostToDevice));
   checkCudaErrors(
-      cudaMemcpyAsync(d_B, h_B, mem_size_B, cudaMemcpyHostToDevice, stream));
+      cudaMemcpy(d_B, h_B, mem_size_B, cudaMemcpyHostToDevice));
 
   // Setup execution parameters
   dim3 threads(block_size, block_size);
@@ -153,7 +146,13 @@ int MatrixMultiply(int block_size, const dim3 &dimsA,
   // Create and start timer
   printf("Computing result using CUDA Kernel...\n");
 
-  checkCudaErrors(cudaStreamSynchronize(stream));
+  // Allocate CUDA events that we'll use for timing
+  cudaStream_t stream;
+  cudaEvent_t start, stop;
+  checkCudaErrors(cudaEventCreate(&start));
+  checkCudaErrors(cudaEventCreate(&stop));
+
+  checkCudaErrors(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
 
   // Record the start event
   checkCudaErrors(cudaEventRecord(start, stream));
