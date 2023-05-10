@@ -157,7 +157,45 @@ int main(int argc, char *argv[])
     float *MB;
     float *MC;
 
-    sycl::property_list prop_list{ sycl::property::queue::enable_profiling() };
+    int input = 0;
+
+    while (input <= 0 || input > 3) {
+        std::cout << "Sequencial (1)\nOpenMP (2)\nSYCL (3)\n\nEnter: ";
+        std::cin >> input;
+        std::cout << std::endl;
+    }
+
+    device d;
+
+    if (input == 3) {
+        std::vector<device> devices;
+        for (auto platform : sycl::platform::get_platforms())
+        {
+            for (auto device : platform.get_devices())
+            {
+                if (device.get_platform().get_info<sycl::info::platform::name>().find("NVIDIA") != std::string::npos || device.get_platform().get_info<sycl::info::platform::name>().find("AMD") != std::string::npos) // No CUDA OR AMD enabled on this solution
+                    continue;
+                devices.push_back(device);
+            }
+        }
+        
+        int counter = 1;
+        for (auto device : devices) {
+            std::cout << device.get_platform().get_info<sycl::info::platform::name>() << " - " << device.get_info<sycl::info::device::name>() << " (" << counter << ")" << std::endl;
+            counter++;
+        }
+        std::cout << std::endl;
+
+        int device_input = 0;
+
+        while (device_input <= 0 || device_input > devices.size()) {
+            std::cout << "Enter: ";
+            std::cin >> device_input;
+            std::cout << std::endl;
+        }
+
+        d = devices[device_input - 1];
+    }
     
     for (int i = 1024; i <= 8192; i += 1024) {
         MA = new float[i * i];
@@ -166,35 +204,43 @@ int main(int argc, char *argv[])
 
         std::cout << "Matrix Size N = " << i << std::endl;
 
-        // Sequencial
-        initMatrix(MA, MB, MC, i);
-        std::cout << "Sequential run" << std::endl;
-        auto start = std::chrono::high_resolution_clock::now();
-        block_host(MA, MB, MC, i, 32);
-        auto end = std::chrono::high_resolution_clock::now();
-        std::cout << "Time = " << std::fixed << std::setprecision(3) << (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "ms" << std::endl
-            << std::endl;
+        sycl::property_list prop_list{ sycl::property::queue::enable_profiling() };
+        queue q(d, prop_list);
 
-        // OPENMP
-        initMatrix(MA, MB, MC, i);
-        std::cout << "OPENMP run with " << omp_get_num_procs() << " threads" << std::endl;
-        start = std::chrono::high_resolution_clock::now();
-        block_host_omp(MA, MB, MC, i, 32);
-        end = std::chrono::high_resolution_clock::now();
-        std::cout << "Time = " << std::fixed << std::setprecision(3) << (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "ms" << std::endl
-            << std::endl;
-
-        // SYCL
-
-        queue q1(cl::sycl::cpu_selector{}, prop_list);
-        initMatrix(MA, MB, MC, i);
-        std::cout << "OPENCL with " << q1.get_device().get_info<sycl::info::device::name>() << std::endl;
-        local_mxm(q1, MA, MB, MC, i, 32);
-
-        queue q2(int_gpu_device_selector{}, prop_list);
-        initMatrix(MA, MB, MC, i);
-        std::cout << "OPENCL with " << q2.get_device().get_info<sycl::info::device::name>() << std::endl;
-        local_mxm(q2, MA, MB, MC, i, 32);
+        switch (input)
+        {
+        case 1:
+        {
+            initMatrix(MA, MB, MC, i);
+            std::cout << "Sequential run" << std::endl;
+            auto start = std::chrono::high_resolution_clock::now();
+            block_host(MA, MB, MC, i, 32);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::cout << "Time = " << std::fixed << std::setprecision(3) << (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "ms" << std::endl
+                << std::endl;
+            break;
+        }
+        case 2:
+        {
+            initMatrix(MA, MB, MC, i);
+            std::cout << "OPENMP run with " << omp_get_num_procs() << " threads" << std::endl;
+            auto start = std::chrono::high_resolution_clock::now();
+            block_host_omp(MA, MB, MC, i, 32);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::cout << "Time = " << std::fixed << std::setprecision(3) << (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "ms" << std::endl
+                << std::endl;
+            break;
+        }
+        case 3:
+        {
+            initMatrix(MA, MB, MC, i);
+            std::cout << "OPENCL with " << q.get_device().get_info<sycl::info::device::name>() << std::endl;
+            local_mxm(q, MA, MB, MC, i, 32);
+            break;
+        }
+        default:
+            break;
+        }
 
         std::cout << std::endl;
 
