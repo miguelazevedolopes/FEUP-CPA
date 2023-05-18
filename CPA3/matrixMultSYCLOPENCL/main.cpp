@@ -136,20 +136,6 @@ void initMatrix(float *MA, float *MB, float *MC, int matSize)
     }
 }
 
-class int_gpu_device_selector : public device_selector
-{
-public:
-    int operator()(const sycl::device& dev) const override
-    {
-        if (dev.is_gpu()) {
-            auto vendorName = dev.get_info<sycl::info::device::vendor>();
-            if (vendorName.find("Intel") != std::string::npos) {
-                return 1;
-            }
-        }
-        return -1;
-    }
-};
 
 int main(int argc, char *argv[])
 {
@@ -178,7 +164,7 @@ int main(int argc, char *argv[])
                 devices.push_back(device);
             }
         }
-        
+
         int counter = 1;
         for (auto device : devices) {
             std::cout << device.get_platform().get_info<sycl::info::platform::name>() << " - " << device.get_info<sycl::info::device::name>() << " (" << counter << ")" << std::endl;
@@ -196,7 +182,7 @@ int main(int argc, char *argv[])
 
         d = devices[device_input - 1];
     }
-    
+
     for (int i = 1024; i <= 8192; i += 1024) {
         MA = new float[i * i];
         MB = new float[i * i];
